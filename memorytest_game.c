@@ -16,14 +16,18 @@ typedef struct ranking {
 	char id[15];
 	int total;
 	int rank;
+	struct ranking* next;
 }RANKING;
 
 void Head();
 void signup();
-void signin();
+int signin();
 void withdraw();
 int word_test(int score);
+void rank_manage(int point);
+RANKING* sorted_insert(int point, RANKING* list);
 
+char userID[15];
 
 void main() {
 	int intro;
@@ -36,8 +40,7 @@ void main() {
 		printf("1. 로그인\n");
 		printf("2. 회원가입\n");
 		printf("3. 회원탈퇴\n");
-		printf("4. 게임 시작\n");
-		printf("5. 게임 종료\n");
+		printf("4. 게임 종료\n");
 
 		printf("Enter the nubmer:");
 		scanf("%d", &intro);
@@ -47,7 +50,20 @@ void main() {
 		switch (intro) {
 
 		case 1:
-			signin();
+			if (signin()==1) {
+				system("cls");
+				printf("==============================================\n\n");
+				printf("\t\tWord test!\n\n");
+				printf("==============================================\n\n");
+
+				for (int i = 0; i < 4; i++) {
+					score = word_test(score);
+
+				}
+
+				rank_manage(score);
+			}
+			
 			break;
 
 		case 2:
@@ -62,19 +78,6 @@ void main() {
 		
 
 		case 4:
-			printf("==============================================\n\n");
-			printf("\t\tWord test!\n\n");
-			printf("==============================================\n\n");
-	
-			for (int i = 0; i < 4; i++) {
-				score = word_test(score);
-
-			}
-
-			
-			break;
-
-		case 5:
 			end = 0;
 			printf("게임이 종료되었습니다\n");
 			return 0;
@@ -120,7 +123,7 @@ void signup() {
 	fclose(fp);
 }
 
-void signin() {
+int signin() {
 	FILE* fp;
 	int judge = 0;
 	ACCOUNT list;
@@ -133,6 +136,9 @@ void signin() {
 	scanf("%s", user.id);
 	printf("PASSWORD:");
 	scanf("%s", user.password);
+
+	strcpy(userID, user.id);
+
 	fp = fopen("Account.txt", "r");
 
 
@@ -147,11 +153,14 @@ void signin() {
 
 	if (judge == 1) {
 		printf("로그인 성공! 환영합니다 %s 님!\n", user.id);
+		return 1;
 	}
 	else {
 		printf("없는 계정입니다!\n");
 	}
 	fclose(fp);
+	return 0;
+	
 }
 
 void withdraw() {
@@ -214,16 +223,84 @@ void withdraw() {
 
 }
 
-void rank_manage() {
+void rank_manage(int point) {
 	FILE* fp=fopen("Ranking.txt", "r");
-	RANKING rk;
+	RANKING * list=NULL;
+	RANKING* newnode=NULL, *current=NULL;
+
+	while (!feof(fp)) {
+		newnode = (RANKING*)malloc(sizeof(RANKING));
+		fscanf(fp, "%s %d %d", newnode->id, &newnode->total, &newnode->rank);
+		//printf("%s %d %d\n", newnode->id, newnode->total, newnode->rank);
+		newnode->next = NULL;
+		if (list == NULL) {
+			list = newnode;
+		}
+		else {
+			current = list;
+			while (current->next != NULL) {
+				current = current->next;
+			}
+			current->next = newnode;
+		}
+		
+	}
+	printf("\n");
+	
+	list = sorted_insert(point, list);
+
+	fclose(fp);
+
+	fp = fopen("Ranking.txt", "w");
+
+	while (list != NULL) {
+		fprintf(fp, "%s %d %d\n", list->id, list->total, list->rank);
+		list = list->next;
+		if (list->next == NULL) {
+			list = list->next;
+		}
+	}
+	list = current;
+	fclose(fp);
+
+}
+
+RANKING* sorted_insert(int point, RANKING* list) {
+	RANKING* current = NULL, * follow = NULL, * newnode = NULL;
+	current = follow = list;
+	
+	
+	if ((newnode = (RANKING*)malloc(sizeof(RANKING))) == NULL) {
+		printf("No memory allocated..\n");
+		return NULL;
+	}
+	newnode->total = point;
+	strcpy(newnode->id, userID);
 
 
+	while ((current != NULL) && (current->total > newnode->total)) {
+		follow = current;
+		newnode->rank += 1;
+		current = current->next;
+		
+	}
+	
+	newnode->next = current;
+	if (current == list) {
+		newnode->rank = 1;
+		list = newnode;
+	}
+	else {
+		newnode->rank = (follow->rank)+1;
+		follow->next = newnode;
+	}
 
+	while (current != NULL) {
+		current->rank += 1;
+		current = current->next;
+	}
 
-
-
-
+	return list;
 }
 
 int word_test(int score) {
@@ -231,7 +308,7 @@ int word_test(int score) {
 	char word[40][11];
 	char ip[20];
 	int sequence[11];
-	int i=0, j,k;
+	int i = 0, j;
 	int random[11];
 	int point = 0;
 
@@ -301,7 +378,7 @@ int word_test(int score) {
 	else {
 		printf("틀렸습니다");
 	}
-
+	fclose(fp);
 	return score;
 
 }
