@@ -1,1 +1,2 @@
-seokju 100 1
+seokju 40 60 100 1
+hello 40 40 80 2

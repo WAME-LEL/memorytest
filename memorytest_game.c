@@ -14,6 +14,8 @@ typedef struct account {
 
 typedef struct ranking {
 	char id[15];
+	int point1;
+	int point2;
 	int total;
 	int rank;
 	struct ranking* next;
@@ -24,23 +26,35 @@ void signup();
 int signin();
 void withdraw();
 int word_test(int score);
-void rank_manage(int point);
-RANKING* sorted_insert(int point, RANKING* list);
+void rank_manage(int score1, int score2, int total_score, int judge);
+RANKING* sorted_insert(int score1, int score2, int total_score, RANKING* list);
+void print_ranking();
+int compare_game();
+void show_example(FILE* fp);
 
 char userID[15];
 
 void main() {
 	int intro;
 	int end = 1;
-	int score = 0;
+	int score1;
+	int score2;
+	int judge;
 
 
 	while (end) {
+		score1 = 0;
+		score2 = 0;
+		judge = 0;
 		Head();
 		printf("1. 로그인\n");
-		printf("2. 회원가입\n");
-		printf("3. 회원탈퇴\n");
-		printf("4. 게임 종료\n");
+		printf("2. 게스트 로그인\n");
+		printf("3. 랭킹 출력\n");
+		printf("4. 회원가입\n");
+		printf("5. 회원탈퇴\n");
+		printf("6. 게임 종료\n");
+		printf("7\n");
+
 
 		printf("Enter the nubmer:");
 		scanf("%d", &intro);
@@ -56,31 +70,80 @@ void main() {
 				printf("\t\tWord test!\n\n");
 				printf("==============================================\n\n");
 
-				for (int i = 0; i < 4; i++) {
-					score = word_test(score);
+				for (int i = 0; i < 2; i++) {
+					score1 = word_test(score1);
 
 				}
+				system("cls");
 
-				rank_manage(score);
+				score2 = compare_game();
+
+				system("cls");
+				rank_manage(score1, score2, score1 + score2, judge);
+
+				print_ranking();
+				printf("==============================================\n\n");
+				printf("%s님의 점수가 등록 되었습니다!\n\n", userID);
+				printf("@@이전에 받았던 점수보다 높은 점수를 받았을 경우 점수가 갱신됩니다!\n");
+				printf("@@이전에 받았던 점수보다 낮은 점수를 받았을 경우 점수가 등록되지않습니다!\n");
 			}
 			
 			break;
 
 		case 2:
+			judge = 1;
+			system("cls");
+
+			printf("==============================================\n\n");
+			printf("\t\tWord test!\n\n");
+			printf("==============================================\n\n");
+
+			for (int i = 0; i < 2; i++) {
+				score1 = word_test(score1);
+
+			}
+			system("cls");
+
+			score2=compare_game();
+
+			system("cls");
+			rank_manage(score1, score2, score1+score2, judge);
+
+			print_ranking();
+			printf("==============================================\n\n");
+			printf("%s님의 점수가 등록 되었습니다!\n\n", userID);
+			printf("@@이전에 받았던 점수보다 높은 점수를 받았을 경우 점수가 갱신됩니다!\n");
+			printf("@@이전에 받았던 점수보다 낮은 점수를 받았을 경우 점수가 등록되지않습니다!\n");
+			break;
+
+
+
+		case 3:
+			print_ranking();
+			break;
+
+
+		case 4:
 			signup();
 			
 			break;
 
-		case 3:
+		case 5:
 			withdraw();
 
 			break;
 		
 
-		case 4:
+		case 6:
 			end = 0;
 			printf("게임이 종료되었습니다\n");
 			return 0;
+
+		case 7:
+			compare_game();
+
+			break;
+
 
 		default:
 			printf("잘못된 입력입니다\n");
@@ -196,7 +259,7 @@ void withdraw() {
 
 	if (current == NULL) {
 		printf("삭제하고자하는 정보가 없습니다\n");
-		return 0;
+		return ;
 	}
 	if (list == current) {
 		list = current->next;
@@ -223,15 +286,14 @@ void withdraw() {
 
 }
 
-void rank_manage(int point) {
+void rank_manage(int score1, int score2, int total_score, int judge) {
 	FILE* fp=fopen("Ranking.txt", "r");
 	RANKING * list=NULL;
 	RANKING* newnode=NULL, *current=NULL;
 
 	while (!feof(fp)) {
 		newnode = (RANKING*)malloc(sizeof(RANKING));
-		fscanf(fp, "%s %d %d", newnode->id, &newnode->total, &newnode->rank);
-		//printf("%s %d %d\n", newnode->id, newnode->total, newnode->rank);
+		fscanf(fp, "%s %d %d %d %d", newnode->id, &newnode->point1, &newnode->point2, &newnode->total, &newnode->rank);
 		newnode->next = NULL;
 		if (list == NULL) {
 			list = newnode;
@@ -247,14 +309,20 @@ void rank_manage(int point) {
 	}
 	printf("\n");
 	
-	list = sorted_insert(point, list);
+	if (judge == 1) {
+		system("cls");
+		printf("사용할 닉네임을 입력하시오:");
+		scanf("%s", userID);
+	}
+
+	list = sorted_insert(score1, score2, total_score, list);
 
 	fclose(fp);
 
 	fp = fopen("Ranking.txt", "w");
 
 	while (list != NULL) {
-		fprintf(fp, "%s %d %d\n", list->id, list->total, list->rank);
+		fprintf(fp, "%s %d %d %d %d\n", list->id, list->point1, list->point2, list->total, list->rank);
 		list = list->next;
 		if (list->next == NULL) {
 			list = list->next;
@@ -265,39 +333,70 @@ void rank_manage(int point) {
 
 }
 
-RANKING* sorted_insert(int point, RANKING* list) {
-	RANKING* current = NULL, * follow = NULL, * newnode = NULL;
-	current = follow = list;
-	
-	
-	if ((newnode = (RANKING*)malloc(sizeof(RANKING))) == NULL) {
-		printf("No memory allocated..\n");
-		return NULL;
+RANKING* sorted_insert(int score1, int score2, int total_score, RANKING* list) {
+	RANKING* current = NULL, * follow = NULL, * newnode = NULL, *copy=NULL;
+	current = follow = copy = list;
+	int judge = 0;
+
+
+	while (copy != NULL) {
+		follow = copy;
+		if (strcmp(userID, copy->id) == 0) {
+			if (total_score > copy->total) {
+				copy->point1 = score1;
+				copy->point2 = score2;
+				copy->total = total_score;
+				judge = 1;
+
+			}
+			else {
+				copy = copy->next;
+				judge = 2;
+			}
+
+
+		}
+		copy = copy->next;
 	}
-	newnode->total = point;
-	strcpy(newnode->id, userID);
 
-
-	while ((current != NULL) && (current->total > newnode->total)) {
-		follow = current;
-		newnode->rank += 1;
-		current = current->next;
+	follow = current = list;
+	
+	if (judge == 0) {
 		
-	}
-	
-	newnode->next = current;
-	if (current == list) {
-		newnode->rank = 1;
-		list = newnode;
-	}
-	else {
-		newnode->rank = (follow->rank)+1;
-		follow->next = newnode;
-	}
+		if ((newnode = (RANKING*)malloc(sizeof(RANKING))) == NULL) {
+			printf("No memory allocated..\n");
+			return NULL;
+		}
+		newnode->point1 = score1;
+		newnode->point2 = score2;
 
-	while (current != NULL) {
-		current->rank += 1;
-		current = current->next;
+		newnode->total = total_score;
+
+		strcpy(newnode->id, userID);
+
+
+		while ((current != NULL) && (current->total > newnode->total)) {
+			follow = current;
+			newnode->rank += 1;
+			current = current->next;
+
+		}
+
+		newnode->next = current;
+		if (current == list) {
+			newnode->rank = 1;
+			list = newnode;
+		}
+		else {
+			newnode->rank = (follow->rank) + 1;
+			follow->next = newnode;
+		}
+
+		while (current != NULL) {
+			current->rank += 1;
+			current = current->next;
+		}
+
 	}
 
 	return list;
@@ -310,8 +409,6 @@ int word_test(int score) {
 	int sequence[11];
 	int i = 0, j;
 	int random[11];
-	int point = 0;
-
 
 	fp = fopen("Word.txt", "r");
 
@@ -349,15 +446,15 @@ int word_test(int score) {
 
 	for (int i = 5; i > 0; i--) {
 		printf("%d초 후에 게임이 시작됩니다!", i);
-		Sleep(100);
+		Sleep(1000);
 		system("cls");
 	}
 	for (i = 0; i < 10; i++) {
 		printf("\n\n\n\n\n\n\t\t\t\t%s", word[random[i]]);
-		Sleep(50);
+		Sleep(500);
 		system("cls");
 	}
-	printf("점수:%d\n", score);
+	printf("현재 점수:%d\n", score);
 
 	printf("======================================\n");
 	printf("다음 중 나온적이 없었던 단어는?\n");
@@ -372,50 +469,173 @@ int word_test(int score) {
 	
 	printf("\n");
 	if (strcmp(ip, word[random[sequence[10]]]) == 0) {
-		printf("정답입니다!");
-		score += 25;
+		printf("정답입니다!\n");
+		score += 20;
 	}
 	else {
-		printf("틀렸습니다");
+		printf("틀렸습니다!\n");
 	}
 	fclose(fp);
 	return score;
 
 }
 
-
-
-
-
-
-
-
-/* 소스코드를 파일에 입력하고 파일로 부터 출력하는 코드
-#include <stdio.h>
-#include <string.h>
-
-int main() {
+int compare_game() {
 	FILE* fp;
 	char code[100];
-	fp = fopen("memory.txt", "w");
+	int score = 0;
+	int answer;
 
-
-
-	while (1) {
-		gets(code);
-		if (strcmp(code, "0")==0) {
-			break;
-		}
-		fprintf(fp, "%s\n", code);
+	for (int i = 5; i > 0; i--) {
+		printf("%d초 후에 게임이 시작됩니다!", i);
+		Sleep(1000);
+		system("cls");
 	}
 
+	fp = fopen("Compare_example//Compare1.txt", "r");
+
+	
+	for (int i = 5; i > 0; i--) {
+		printf("int arr[5] = { 19, 34, 2, 66, 92 };\n\n");
+		printf("%d초 후에 사라집니다!", i);
+		Sleep(1000);
+		system("cls");
+	}
+	printf("현재 점수:%d\n\n", score);
+
+	show_example(fp);
+
+	printf("소스코드의 출력 결과를 입력하시오:");
+	scanf("%d", &answer);
+
+	if (answer == 92) {
+		printf("정답입니다!\n");
+		score += 20;
+	}
+	else {
+		printf("틀렸습니다!\n");
+	}
 
 	fclose(fp);
 
-	fp = fopen("memory.txt", "r");
+	printf("다음문제로->");
+	system("pause");
+	system("cls");
+
+	for (int i = 5; i > 0; i--) {
+		printf("%d초 후에 게임이 시작됩니다!", i);
+		Sleep(100);
+		system("cls");
+	}
+
+	fp = fopen("Compare_example//Compare2.txt", "r");
+
+	for (int i = 5; i > 0; i--) {
+		printf("int arr[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\n\n");
+		printf("%d초 후에 사라집니다!", i);
+		Sleep(1000);
+		system("cls");
+	}
+	printf("현재 점수:%d\n", score);
+	show_example(fp);
+
+	printf("소스코드의 출력 결과를 입력하시오:");
+	scanf("%d", &answer);
+
+	if (answer == 44) {
+		printf("정답입니다!\n");
+		score += 20;
+	}
+	else {
+		printf("틀렸습니다!\n");
+	}
+
+	fclose(fp);
+
+	printf("다음문제로->");
+	system("pause");
+	system("cls");
+
+	for (int i = 5; i > 0; i--) {
+		printf("%d초 후에 게임이 시작됩니다!", i);
+		Sleep(100);
+		system("cls");
+	}
+
+	fp = fopen("Compare_example//Compare3.txt", "r");
+
+	for (int i = 10; i > 0; i--) {
+		show_example(fp);
+		printf("%d초 후에 사라집니다!", i);
+		Sleep(1000);
+		system("cls");
+		fseek(fp, 0, SEEK_SET);
+	}
+
+	
+	printf("현재 점수:%d\n", score);
+	
+	printf("소스코드의 출력 결과를 입력하시오:");
+	scanf("%d", &answer);
+
+	if (answer == 9) {
+		printf("정답입니다!\n");
+		score += 20;
+	}
+	else {
+		printf("틀렸습니다!\n");
+	}
+
+	fclose(fp);
+
+	return score;
+
+}
+
+void show_example(FILE * fp){
+	char code[100];
 
 	while (!feof(fp)) {
 		fgets(code, 100, fp);
 		printf("%s\n", code);
 	}
-}*/
+}
+
+void print_ranking() {
+	FILE* fp=fopen("Ranking.txt", "r");
+	RANKING* list = NULL;
+	RANKING* newnode = NULL, * current = NULL;
+
+	while (!feof(fp)) {
+		newnode = (RANKING*)malloc(sizeof(RANKING));
+		fscanf(fp, "%s %d %d %d %d", newnode->id, &newnode->point1, &newnode->point2, &newnode->total, &newnode->rank);
+
+		newnode->next = NULL;
+		if (list == NULL) {
+			list = newnode;
+		}
+		else {
+			current = list;
+			while (current->next != NULL) {
+				current = current->next;
+			}
+			current->next = newnode;
+		}
+
+	}
+
+
+	printf("==============================================\n\n");
+	printf("ID\t점수1\t점수2\t총점\t순위\n\n");
+	printf("==============================================\n\n");
+
+	while (list != NULL) {
+		printf("%s\t%d\t%d\t%d\t%d\n", list->id, list->point1, list->point2, list->total, list->rank);
+		list = list->next;
+		if (list->next == NULL) {
+			list = list->next;
+		}
+	}
+	fclose(fp);
+
+}

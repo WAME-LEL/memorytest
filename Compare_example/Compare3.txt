@@ -1,0 +1,12 @@
+#include <stdio.h>
+
+int main() {
+	char word[12] = "SunMoonUniv";
+	int i=0;
+	while (word[i] != '\0') {
+		if (word[i] == 'i') {
+			printf("%d", i);
+		}
+		i++;
+	}
+}
